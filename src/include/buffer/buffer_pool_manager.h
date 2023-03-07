@@ -16,8 +16,10 @@
 #include <memory>
 #include <mutex>  // NOLINT
 #include <unordered_map>
+#include <cassert>
 
 #include "buffer/lru_k_replacer.h"
+#include "buffer/lru_replacer.h"
 #include "common/config.h"
 #include "recovery/log_manager.h"
 #include "storage/disk/disk_manager.h"
@@ -52,11 +54,13 @@ class BufferPoolManager {
   /** @brief Return the pointer to all the pages in the buffer pool. */
   auto GetPages() -> Page * { return pages_; }
 
+  void GetReplaceFrameId(frame_id_t *frameid);
+
   /**
    * TODO(P1): Add implementation
    *
    * @brief Create a new page in the buffer pool. Set page_id to the new page's id, or nullptr if all frames
-   * are currently in use and not evictable (in another word, pinned).
+   * are currently in use and not evictable (in another words, pinned).
    *
    * You should pick the replacement frame from either the free list or the replacer (always find from the free list
    * first), and then call the AllocatePage() method to get a new page id. If the replacement frame has a dirty page,
@@ -136,6 +140,9 @@ class BufferPoolManager {
    * @return false if the page is not in the page table or its pin count is <= 0 before this call, true otherwise
    */
   auto UnpinPage(page_id_t page_id, bool is_dirty, AccessType access_type = AccessType::Unknown) -> bool;
+  
+  /** @brief Kobi added this method. */
+  auto PinPage(page_id_t page_id) -> bool;
 
   /**
    * TODO(P1): Add implementation
@@ -187,7 +194,7 @@ class BufferPoolManager {
   /** Page table for keeping track of buffer pool pages. */
   std::unordered_map<page_id_t, frame_id_t> page_table_;
   /** Replacer to find unpinned pages for replacement. */
-  std::unique_ptr<LRUKReplacer> replacer_;
+  std::unique_ptr<LRUReplacer> replacer_;
   /** List of free frames that don't have any pages on them. */
   std::list<frame_id_t> free_list_;
   /** This latch protects shared data structures. We recommend updating this comment to describe what it protects. */
@@ -198,6 +205,14 @@ class BufferPoolManager {
    * @return the id of the allocated page
    */
   auto AllocatePage() -> page_id_t;
+
+  page_id_t PageIdFromFrameId(frame_id_t frame_id);
+
+  void WritePageToDisk(page_id_t page_id);
+
+  void PageFromPageId(page_id_t page_id, Page *page);
+
+  void ReadPageFromDisk(page_id_t read_page_id, page_id_t replace_page_id);
 
   /**
    * @brief Deallocate a page on disk. Caller should acquire the latch before calling this function.

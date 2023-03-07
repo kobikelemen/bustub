@@ -18,8 +18,35 @@
 
 #include "buffer/replacer.h"
 #include "common/config.h"
+#include <deque>
+#include <vector>
 
 namespace bustub {
+
+
+class FrameInfo {
+  public:
+    
+    FrameInfo(frame_id_t id);
+
+    ~FrameInfo();
+    
+    void IncPins();
+    
+    void DecPins();
+
+    frame_id_t GetFrameID();
+
+    unsigned int GetNumPins();
+  
+  private:
+    unsigned int pins;
+
+    frame_id_t frame_id;
+};
+
+
+
 
 /**
  * LRUReplacer implements the Least Recently Used replacement policy.
@@ -45,8 +72,29 @@ class LRUReplacer : public Replacer {
 
   auto Size() -> size_t override;
 
+  void Delete(frame_id_t frame_id);
+
+
  private:
-  // TODO(student): implement me!
+  std::mutex replacer_mutex;
+
+  std::deque<FrameInfo*> lru_queue;
+
+  std::vector<FrameInfo*> used_vec;
+
+  FrameInfo *GetFrameInfoUsed(frame_id_t frame_id);
+
+  FrameInfo *GetFrameInfoQueue(frame_id_t frame_id);
+
+  void AddUsed(FrameInfo *frame_info);
+
+  void RemoveUsed(frame_id_t frame_id);
+
+  void PushQueue(FrameInfo *frame_info);
+
+  FrameInfo *PopQueue();
+
+  void RemoveQueue(frame_id_t frame_id);
 };
 
 }  // namespace bustub

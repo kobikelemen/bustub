@@ -39,6 +39,12 @@ class Page {
   /** Default destructor. */
   ~Page() { delete[] data_; }
 
+  void Reset() {
+    ResetMemory();
+    pin_count_ = 0;
+    is_dirty_ = false;
+  }
+
   /** @return the actual data contained within this page */
   inline auto GetData() -> char * { return data_; }
 
@@ -48,8 +54,15 @@ class Page {
   /** @return the pin count of this page */
   inline auto GetPinCount() -> int { return pin_count_; }
 
+  void IncPin() { pin_count_++; }
+
+  void DecPin() { pin_count_--; }
+
   /** @return true if the page in memory has been modified from the page on disk, false otherwise */
   inline auto IsDirty() -> bool { return is_dirty_; }
+
+  /** @brief Kobi added function to set dirty bit. */
+  void SetDirty(bool dirty) { is_dirty_ = dirty; }
 
   /** Acquire the page write latch. */
   inline void WLatch() { rwlatch_.WLock(); }
