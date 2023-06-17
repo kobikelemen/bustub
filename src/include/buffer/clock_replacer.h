@@ -15,6 +15,7 @@
 #include <list>
 #include <mutex>  // NOLINT
 #include <vector>
+#include <iostream>
 
 #include "buffer/replacer.h"
 #include "common/config.h"
@@ -53,11 +54,15 @@ class ClockReplacer : public Replacer {
 
   auto Size() -> size_t override;
 
- private:
+private:
+
+  void MoveFrameIndex(size_t from_index, size_t to_index); /* Moves frame in clock_. */
   
+  int GetFrameIndex(frame_id_t frame_id); /* Get's index in clock_ of frame_id. */
+  
+  std::vector<FrameInfo> clock_;
   size_t num_pages_;
   size_t size_; /* Num frames that can be victimised. */
-  std::vector<FrameInfo> clock_;
   uint32_t head_; /* Points to index that clock is currently
                      considering. */
 
