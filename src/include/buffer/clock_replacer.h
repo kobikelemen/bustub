@@ -21,6 +21,14 @@
 
 namespace bustub {
 
+
+struct FrameInfo {
+  bool ref_;
+  bool in_clock_;
+  size_t frame_id_;
+};
+
+
 /**
  * ClockReplacer implements the clock replacement policy, which approximates the Least Recently Used policy.
  */
@@ -46,7 +54,13 @@ class ClockReplacer : public Replacer {
   auto Size() -> size_t override;
 
  private:
-  // TODO(student): implement me!
+  
+  size_t num_pages_;
+  size_t size_; /* Num frames that can be victimised. */
+  std::vector<FrameInfo> clock_;
+  uint32_t head_; /* Points to index that clock is currently
+                     considering. */
+
 };
 
 }  // namespace bustub
