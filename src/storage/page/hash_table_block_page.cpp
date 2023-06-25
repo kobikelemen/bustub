@@ -16,32 +16,60 @@
 namespace bustub {
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
+void HASH_TABLE_BLOCK_TYPE::Initialise() {
+  memset(occupied_, 0x00, (BLOCK_ARRAY_SIZE - 1) / 8 + 1);
+  memset(readable_, 0x00, (BLOCK_ARRAY_SIZE - 1) / 8 + 1);
+}
+
+template <typename KeyType, typename ValueType, typename KeyComparator>
 auto HASH_TABLE_BLOCK_TYPE::KeyAt(slot_offset_t bucket_ind) const -> KeyType {
-  return {};
+  if (bucket_ind >= BLOCK_ARRAY_SIZE || bucket_ind < 0 || !readable_[bucket_ind])
+    return {};
+  return array_[bucket_ind].first;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 auto HASH_TABLE_BLOCK_TYPE::ValueAt(slot_offset_t bucket_ind) const -> ValueType {
-  return {};
+  if (bucket_ind >= BLOCK_ARRAY_SIZE || bucket_ind < 0 || !readable_[bucket_ind])
+    return {};
+  return array_[bucket_ind].second;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 auto HASH_TABLE_BLOCK_TYPE::Insert(slot_offset_t bucket_ind, const KeyType &key, const ValueType &value) -> bool {
-  return false;
+  if (bucket_ind >= BLOCK_ARRAY_SIZE || bucket_ind < 0 || occupied_[bucket_ind])
+    return false;
+  array_[bucket_ind] = {key, value};
+  readable_[bucket_ind] = true;
+  return true;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
-void HASH_TABLE_BLOCK_TYPE::Remove(slot_offset_t bucket_ind) {}
+void HASH_TABLE_BLOCK_TYPE::Remove(slot_offset_t bucket_ind) {
+  if (bucket_ind >= BLOCK_ARRAY_SIZE || bucket_ind < 0 || !occupied_[bucket_ind])
+    return;
+  array_[bucket_ind] = {};
+  occupied_[bucket_ind] = 0;
+  readable_[bucket_ind] = 0;
+}
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 auto HASH_TABLE_BLOCK_TYPE::IsOccupied(slot_offset_t bucket_ind) const -> bool {
-  return false;
+  if (bucket_ind >= BLOCK_ARRAY_SIZE || bucket_ind < 0 || !occupied_[bucket_ind])
+    return false;
+  return true;
 }
 
 template <typename KeyType, typename ValueType, typename KeyComparator>
 auto HASH_TABLE_BLOCK_TYPE::IsReadable(slot_offset_t bucket_ind) const -> bool {
-  return false;
+  if (bucket_ind >= BLOCK_ARRAY_SIZE || bucket_ind < 0 || !readable_[bucket_ind])
+    return false;
+  return true;
 }
+
+
+/* SEVERAL METHODS NOT IMPLEMENTED FROM HEADER, E.G. NumReadable() */
+
 
 // DO NOT REMOVE ANYTHING BELOW THIS LINE
 template class HashTableBlockPage<int, int, IntComparator>;

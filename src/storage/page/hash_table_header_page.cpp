@@ -13,22 +13,46 @@
 #include "storage/page/hash_table_header_page.h"
 
 namespace bustub {
-auto HashTableHeaderPage::GetBlockPageId(size_t index) -> page_id_t { return 0; }
 
-auto HashTableHeaderPage::GetPageId() const -> page_id_t { return 0; }
+auto HashTableHeaderPage::GetBlockPageId(size_t index) -> page_id_t {
+    if (index > max_num_blocks_)
+        return -1;
+    return block_page_ids[index];
+}
 
-void HashTableHeaderPage::SetPageId(bustub::page_id_t page_id) {}
+auto HashTableHeaderPage::GetPageId() const -> page_id_t {
+    return page_id_;
+}
 
-auto HashTableHeaderPage::GetLSN() const -> lsn_t { return 0; }
+void HashTableHeaderPage::SetPageId(bustub::page_id_t page_id) {
+    page_id_ = page_id;
+}
 
-void HashTableHeaderPage::SetLSN(lsn_t lsn) {}
+auto HashTableHeaderPage::GetLSN() const -> lsn_t { 
+    return lsn_;
+}
 
-void HashTableHeaderPage::AddBlockPageId(page_id_t page_id) {}
+void HashTableHeaderPage::SetLSN(lsn_t lsn) {
+    lsn_ = lsn;
+}
 
-auto HashTableHeaderPage::NumBlocks() -> size_t { return 0; }
+void HashTableHeaderPage::AddBlockPageId(page_id_t page_id) {
+    if (num_blocks_ >= max_num_blocks_) 
+        return;
+    num_blocks_ ++;
+    block_page_ids_[num_blocks_] = page_id;
+}   
 
-void HashTableHeaderPage::SetSize(size_t size) {}
+auto HashTableHeaderPage::NumBlocks() -> size_t {
+    return num_blocks_;
+}
 
-auto HashTableHeaderPage::GetSize() const -> size_t { return 0; }
+void HashTableHeaderPage::SetSize(size_t size) {
+    size_ = size;
+}
+
+auto HashTableHeaderPage::GetSize() const -> size_t {
+    return size_;
+}
 
 }  // namespace bustub

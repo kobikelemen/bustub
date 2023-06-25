@@ -39,6 +39,8 @@ class HashTableBlockPage {
   // Delete all constructor / destructor to ensure memory safety
   HashTableBlockPage() = delete;
 
+  void Initialise();
+
   /**
    * Gets the key at an index in the block.
    *

@@ -15,6 +15,7 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "buffer/buffer_pool_manager.h"
 #include "concurrency/transaction.h"
@@ -85,6 +86,8 @@ class LinearProbeHashTable {
   auto GetSize() -> size_t;
 
  private:
+  
+  auto GetPageIdAndOffset(size_t index) -> std::pair<page_id_t, size_t>;
   auto GetHeaderPage() -> HashTableHeaderPage *;
   auto GetBlockPage(page_id_t block_page_id) -> HASH_TABLE_BLOCK_TYPE *;
   void ResizeInsert(HashTableHeaderPage *header_page, const KeyType &key, const ValueType &value);
@@ -93,7 +96,9 @@ class LinearProbeHashTable {
   auto GetValueLatchFree(Transaction *transaction, const KeyType &key, std::vector<ValueType> *result) -> bool;
 
   // member variable
+  size_t num_blocks_;
   page_id_t header_page_id_;
+  HashTableHeaderPage *header_page_;
   BufferPoolManager *buffer_pool_manager_;
   KeyComparator comparator_;
 

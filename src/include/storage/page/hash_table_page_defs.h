@@ -14,6 +14,13 @@
 
 #define MappingType std::pair<KeyType, ValueType>
 
+
+/**
+ * @brief Kobi added this definition. Gives number of page_ids stored in hash table HEADER
+ * as given in Task 1 brief.
+ */
+#define HEADER_NUM_IDS 4080 / 4
+
 /**
  * Linear Probe Hashing Definitions
  */
