@@ -85,6 +85,7 @@ auto BufferPoolManager::NewPage(page_id_t *page_id) -> Page * {
   }
   /* Reset page */
   pages_[free_frame_id].Reset();
+  pages_[free_frame_id].SetPageId(new_page_id);
   PinPage(new_page_id);
   return &pages_[free_frame_id];
 }
@@ -170,6 +171,7 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
   replacer_->Delete(frame_id);
   page_table_.erase(page_id);
   pages_[frame_id].Reset();
+  pages_[frame_id].SetPageId(INVALID_PAGE_ID);
   free_list_.push_back(frame_id);
   DeallocatePage(page_id);
   pages_[frame_id].WUnlatch();

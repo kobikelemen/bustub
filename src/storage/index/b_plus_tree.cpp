@@ -4,9 +4,38 @@
 #include "common/exception.h"
 #include "common/logger.h"
 #include "common/rid.h"
+// #include "storage/index/b_plus_tree.h"
 #include "storage/index/b_plus_tree.h"
 
+
 namespace bustub {
+
+
+/* Returns first index of key where next index is greater than param key.
+   Returns index after size_ if param key is bigger than all in page. */
+template <typename BPlusTreePageType, typename KeyType, typename KeyComparator>
+int FindKeyIndexBefore(BPlusTreePageType *page, KeyType key, KeyComparator comparator) {
+  int i = 0;
+  for (; i < page->GetSize()-1; i++) {
+    if (comparator(page->KeyAt(i + 1), key) == 1) 
+      return i;
+  }
+  return i + 1;
+}
+
+/* Returns index of key that matches param key if in page.
+   Returns -1 if key not in page. */
+template <typename BPlusTreePageType, typename KeyType, typename KeyComparator>
+int FindKey(BPlusTreePageType *page, KeyType key, KeyComparator comparator) {
+  int i = 0;
+  for (; i < page->GetSize(); i++) {
+    if (comparator(page->KeyAt(i), key) == 0) 
+      return i;
+  }
+  return -1;
+}
+
+
 
 INDEX_TEMPLATE_ARGUMENTS
 BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
@@ -17,16 +46,49 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPool
       leaf_max_size_(leaf_max_size),
       internal_max_size_(internal_max_size),
       header_page_id_(header_page_id) {
-  WritePageGuard guard = bpm_->FetchPageWrite(header_page_id_);
-  auto root_page = guard.AsMut<BPlusTreeHeaderPage>();
-  root_page->root_page_id_ = INVALID_PAGE_ID;
+  // WritePageGuard guard = bpm_->FetchPageWrite(header_page_id_);
+  // auto root_page = guard.AsMut<BPlusTreeHeaderPage>();
+  // root_page->root_page_id_ = INVALID_PAGE_ID;
+  auto header_page = reinterpret_cast<BPlusTreeHeaderPage*>(bpm_->FetchPage(header_page_id)->GetData());
+  bpm_->NewPage(&header_page->root_page_id_);
+  LeafPage* root_page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(header_page->root_page_id_)->GetData());
+  root_page->Init();
+  root_page->SetPageType(IndexPageType::LEAF_PAGE);
+  bpm_->UnpinPage(header_page->root_page_id_, true);
+  bpm_->UnpinPage(header_page_id, true);
 }
+
+
+
+
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::GetLeafPage(KeyType key) -> LeafPage* {
+  /* Start searching at root page */
+  auto page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(GetRootPageId())->GetData());
+
+  while (!page->IsLeafPage()) {
+    int index = FindKeyIndexBefore<InternalPage,KeyType,KeyComparator>(page, key, comparator_);
+    InternalPage *prev_page = page;
+    page_id_t prev_page_id = prev_page->ValueAt(index);
+    page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(prev_page_id)->GetData());
+    bpm_->UnpinPage(prev_page_id, false);
+  }
+  return reinterpret_cast<LeafPage*>(page);
+}
+
+
 
 /*
  * Helper function to decide whether current b+tree is empty
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::IsEmpty() const -> bool { return true; }
+auto BPLUSTREE_TYPE::IsEmpty() const -> bool {
+  // TODO 
+  return true;
+}
+
+
+
 /*****************************************************************************
  * SEARCH
  *****************************************************************************/
@@ -40,13 +102,22 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
   // Declaration of context instance.
   Context ctx;
   (void)ctx;
+  auto leaf_page = GetLeafPage(key);
+  int index = FindKey<LeafPage,KeyType,KeyComparator>(leaf_page, key, comparator_);
+  if (index != -1) {
+    *result = {leaf_page->ValueAt(index)};
+    return true;
+  }
+  *result = {};
   return false;
 }
+
+
 
 /*****************************************************************************
  * INSERTION
  *****************************************************************************/
-/*
+/**
  * Insert constant key & value pair into b+ tree
  * if current tree is empty, start new tree, update root page id and insert
  * entry, otherwise insert into leaf page.
@@ -58,8 +129,44 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
   // Declaration of context instance.
   Context ctx;
   (void)ctx;
+  
+  /* Saved order in which pages were traversed to reach leaf_page.
+     Does not include leaf_page. (last one is parent of it.) */
+  std::vector<page_id_t> page_path;
+  auto leaf_page = GetLeafPage(key);
+
+  if (leaf_page->GetSize() < leaf_page->GetMaxSize()) { /* If not full */
+    /* Check if duplicate, return false if it is, insert and return true if not. */
+    int index = FindKeyIndexBefore<LeafPage,KeyType,KeyComparator>(leaf_page, key, comparator_);
+    if (comparator_(leaf_page->KeyAt(index-1), key) == 0) 
+      return false;
+    leaf_page->Insert(key, value, leaf_page->GetSize());
+    return true;
+  } else {
+    // TODO Need to recursively split leaf page.
+    // std::pair<LeafPage*,LeafPage*> leaf_page_pair SplitLeafNode(leaf_page, page_path.pop_back());
+    // KeyType left_page_end_key = leaf_page_pair.first->KeyAt(leaf_page_pair.first->GetSize()-1);
+    // /* If end key in left page is smaller or equal to key. */
+    // if (comparator_(left_page_end_key, key) == 1 || comparator_(left_page_end_key, key) == 0) {
+      
+    // }
+
+  }
   return false;
+  /*
+   - Look for biggest key that is less than or equal to key searching for 
+   - Follow pointer to level below and repeat recursively until at leaf layer
+   - Search for kbiggest key that is less than or equal to insert key and insert
+     key-value at that location
+   - if leaf layer full then need to split current ndoe into two and move
+     middle value to layer above. The value moved should point to newly made node. 
+     Repeat this recursively if layer above is also filled.
+
+  */
 }
+
+
+
 
 /*****************************************************************************
  * REMOVE
@@ -76,7 +183,10 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   // Declaration of context instance.
   Context ctx;
   (void)ctx;
+  /* IMPORTANT: Insert() relies on compacting leaf array when removing an element. */
 }
+
+
 
 /*****************************************************************************
  * INDEX ITERATOR
@@ -88,6 +198,8 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+
+
 
 /*
  * Input parameter is low key, find the leaf page that contains the input key
@@ -105,11 +217,20 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return IN
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
 
+
+
 /**
  * @return Page id of the root of this tree
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { return 0; }
+auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t {
+  auto header_page = reinterpret_cast<BPlusTreeHeaderPage*>(bpm_->FetchPage(header_page_id_)->GetData());
+  page_id_t root_page_id = header_page->root_page_id_;
+  bpm_->UnpinPage(header_page_id_, false);
+  return root_page_id;
+}
+ 
+
 
 /*****************************************************************************
  * UTILITIES AND DEBUG

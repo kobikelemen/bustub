@@ -56,6 +56,9 @@ class Context {
   auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
 };
 
+
+
+
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
 
 // Main class providing the API for the Interactive B+ Tree.
@@ -115,8 +118,21 @@ class BPlusTree {
 
   // read data from file and remove one by one
   void RemoveFromFile(const std::string &file_name, Transaction *txn = nullptr);
+  
+  
+  /**
+   * @brief Navigate down the B+ tree to the corresponding leaf page.
+   * 
+   * @param key 
+   * @return BPlusTreeInternalPage* 
+   */
+  auto GetLeafPage(KeyType key) -> LeafPage*;
 
  private:
+
+  /* Splits, returning the two resuling pages from split. */
+  auto SplitLeafNode(LeafPage* leaf_page, page_id_t parent_page_id) -> std::pair<LeafPage*,LeafPage*>;
+
   /* Debug Routines for FREE!! */
   void ToGraph(page_id_t page_id, const BPlusTreePage *page, std::ofstream &out);
 

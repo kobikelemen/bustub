@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 #include "buffer/buffer_pool_manager.h"
 #include "concurrency/transaction.h"
@@ -87,6 +88,10 @@ class LinearProbeHashTable {
 
  private:
   
+  std::pair<HashTableBlockPage<KeyType,ValueType,KeyComparator>*, int> IndexHashTable(
+    std::function<bool(HashTableBlockPage<KeyType,ValueType,KeyComparator>*, size_t, KeyType, KeyComparator)> check_condition,
+    Transaction *transaction, const KeyType &key);
+
   auto GetPageIdAndOffset(size_t index) -> std::pair<page_id_t, size_t>;
   auto GetHeaderPage() -> HashTableHeaderPage *;
   auto GetBlockPage(page_id_t block_page_id) -> HASH_TABLE_BLOCK_TYPE *;

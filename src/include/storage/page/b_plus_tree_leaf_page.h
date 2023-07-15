@@ -58,6 +58,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto GetNextPageId() const -> page_id_t;
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
+  auto ValueAt(int index) -> ValueType;
 
   /**
    * @brief for test only return a string representing all keys in
@@ -83,6 +84,16 @@ class BPlusTreeLeafPage : public BPlusTreePage {
 
     return kstr;
   }
+
+  /**
+   * @brief Kobi added this function to add key value pair at 'index'. 
+   * This function replaces whatever is currently stored at 'index'.
+   * 
+   * @param key 
+   * @param value 
+   * @param index 
+   */
+  void Insert(const KeyType &key, const ValueType &value, size_t index);
 
  private:
   page_id_t next_page_id_;
