@@ -73,7 +73,7 @@ class BPlusTree {
                      int internal_max_size = INTERNAL_PAGE_SIZE);
 
   // Returns true if this B+ tree has no keys and values.
-  auto IsEmpty() const -> bool;
+  auto IsEmpty() -> bool;
 
   // Insert a key-value pair into this B+ tree.
   auto Insert(const KeyType &key, const ValueType &value, Transaction *txn = nullptr) -> bool;
@@ -86,6 +86,8 @@ class BPlusTree {
 
   // Return the page id of the root node
   auto GetRootPageId() -> page_id_t;
+
+  void SetRootPageId(page_id_t root_page_id);
 
   // Index iterator
   auto Begin() -> INDEXITERATOR_TYPE;
@@ -126,12 +128,15 @@ class BPlusTree {
    * @param key 
    * @return BPlusTreeInternalPage* 
    */
-  auto GetLeafPage(KeyType key) -> LeafPage*;
+  auto GetLeafPage(KeyType key, std::vector<page_id_t> &page_path) -> LeafPage*;
 
  private:
 
-  /* Splits, returning the two resuling pages from split. */
-  auto SplitLeafNode(LeafPage* leaf_page, page_id_t parent_page_id) -> std::pair<LeafPage*,LeafPage*>;
+  /* Splits, returning the two resuling pages from split and middle key element. */
+  auto SplitLeafNode(LeafPage* leaf_page) -> std::tuple<page_id_t,page_id_t,KeyType>;
+
+  auto UpdateParent(page_id_t left_page_id, page_id_t right_page_id, 
+                  KeyType key_middle, std::vector<page_id_t> page_path) -> void;
 
   /* Debug Routines for FREE!! */
   void ToGraph(page_id_t page_id, const BPlusTreePage *page, std::ofstream &out);
@@ -154,6 +159,7 @@ class BPlusTree {
   int leaf_max_size_;
   int internal_max_size_;
   page_id_t header_page_id_;
+  GenericKey<8> INVALID_KEY;
 };
 
 /**

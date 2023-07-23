@@ -72,6 +72,7 @@ class HashTableHeaderPage {
   /**
    * Adds a block page_id to the end of header page
    *
+   
    * @param page_id page_id to be added
    */
   void AddBlockPageId(page_id_t page_id);

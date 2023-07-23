@@ -29,6 +29,7 @@ INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::Init(int max_size) {
   memset(array_, 0, LEAF_PAGE_SIZE);
   SetSize(0);
+  SetPageType(IndexPageType::LEAF_PAGE);
   SetMaxSize(max_size);
 }
 
@@ -63,12 +64,20 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) -> ValueType {
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, size_t index) {
-  // BUSTUB_ASSERT(index < LEAF_PAGE_SIZE, "Trying to index above LEAF_PAGE_SIZE");
   if (index >= LEAF_PAGE_SIZE)
     return;
+  
+  MappingType* temp_arr = (MappingType*) malloc(GetMaxSize() - index);
+  std::memcpy(temp_arr, &array_[index], GetMaxSize() - index);
+    
+  if ((int)index != GetSize()) 
+    std::memcpy(&array_[index+1], temp_arr, GetMaxSize() - index);
+
   array_[index] = {key, value};
   SetSize(GetSize() + 1);
 }
+
+
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;

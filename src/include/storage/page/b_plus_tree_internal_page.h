@@ -47,6 +47,20 @@ class BPlusTreeInternalPage : public BPlusTreePage {
    */
   void Init(int max_size = INTERNAL_PAGE_SIZE);
 
+
+  /**
+   * @brief Kobi added this function to insert key value pair at 'index'. 
+   * Places key,value at 'index' and pushes previous key,value that was 
+   * at 'index' forward. Also increments page's size_.
+   * 
+   * @param key 
+   * @param value 
+   * @param index 
+   */
+  void Insert(KeyType key, const ValueType &value, size_t index);
+
+  void Replace(const KeyType &key, const ValueType &value, size_t index);
+
   /**
    * @param index The index of the key to get. Index must be non-zero.
    * @return Key at index

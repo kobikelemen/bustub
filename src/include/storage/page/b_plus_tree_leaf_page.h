@@ -86,8 +86,9 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   }
 
   /**
-   * @brief Kobi added this function to add key value pair at 'index'. 
-   * This function replaces whatever is currently stored at 'index'.
+   * @brief Kobi added this function to insert key value pair at 'index'. 
+   * Places key,value at 'index' and pushes previous key,value that was 
+   * at 'index' forward. Also increments page's size_.
    * 
    * @param key 
    * @param value 
