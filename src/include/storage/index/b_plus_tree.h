@@ -19,6 +19,10 @@
 #include <string>
 #include <vector>
 
+
+
+
+
 #include "common/config.h"
 #include "common/macros.h"
 #include "concurrency/transaction.h"
@@ -29,6 +33,16 @@
 #include "storage/page/page_guard.h"
 
 namespace bustub {
+
+
+// #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
+
+// // namespace bustup {
+// template <typename KeyType, typename ValueType, typename KeyComparator> class BPlusTree;
+// }
+
+
+
 
 struct PrintableBPlusTree;
 
@@ -57,9 +71,9 @@ class Context {
 };
 
 
-
-
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
+
+
 
 // Main class providing the API for the Interactive B+ Tree.
 INDEX_TEMPLATE_ARGUMENTS
@@ -121,6 +135,11 @@ class BPlusTree {
   // read data from file and remove one by one
   void RemoveFromFile(const std::string &file_name, Transaction *txn = nullptr);
   
+
+  auto GetLeafPageId(KeyType key) -> page_id_t;
+
+  auto GetMaxLeafPageId() -> page_id_t;
+
   
   /**
    * @brief Navigate down the B+ tree to the corresponding leaf page.
@@ -153,13 +172,14 @@ class BPlusTree {
 
   // member variable
   std::string index_name_;
-  BufferPoolManager *bpm_;
+  BufferPoolManager * ;
   KeyComparator comparator_;
   std::vector<std::string> log;  // NOLINT
   int leaf_max_size_;
   int internal_max_size_;
   page_id_t header_page_id_;
   GenericKey<8> INVALID_KEY;
+  size_t size_;
 };
 
 /**

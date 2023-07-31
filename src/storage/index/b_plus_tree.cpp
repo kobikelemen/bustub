@@ -74,8 +74,40 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPool
   root_page->Init();
   bpm_->UnpinPage(header_page->root_page_id_, true);
   bpm_->UnpinPage(header_page_id, true);
+  size_ = 0;
 }
 
+
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::GetMaxLeafPageId() -> page_id_t {
+   auto page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(GetRootPageId())->GetData());
+  page_id_t current_page_id;
+
+  while (!page->IsLeafPage()) {
+    int index = page->GetSize() - 1;
+    InternalPage *prev_page = page;
+    current_page_id = prev_page->ValueAt(index);
+    page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(current_page_id)->GetData());
+    bpm_->UnpinPage(current_page_id, false);
+  }
+  return current_page_id;
+}
+
+
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::GetLeafPageId(KeyType key) -> page_id_t {
+  auto page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(GetRootPageId())->GetData());
+  page_id_t current_page_id;
+
+  while (!page->IsLeafPage()) {
+    int index = FindGuidepostIndexInternal<InternalPage,KeyType,KeyComparator>(page, key, comparator_);
+    InternalPage *prev_page = page;
+    current_page_id = prev_page->ValueAt(index);
+    page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(current_page_id)->GetData());
+    bpm_->UnpinPage(current_page_id, false);
+  }
+  return current_page_id;
+}
 
 
 
@@ -167,7 +199,6 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     if (comparator_(leaf_page->KeyAt(index-1), key) == 0) 
       return false;
     leaf_page->Insert(key, value, leaf_page->GetSize());
-    return true;
   } else {
     // recursively split leaf page.
     std::tuple<page_id_t,page_id_t,KeyType> leaf_page_tuple = SplitLeafNode(leaf_page);
@@ -178,8 +209,8 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     LeafPage* right_page_ptr = reinterpret_cast<LeafPage*>(bpm_->FetchPage(right_page_id)->GetData());
 
     UpdateParent(left_page_id, right_page_id, key_middle, page_path);
-
-    // TODO update left_page_ptr and right_page_ptr's next_page_id_
+    left_page_ptr->SetNextPageId(right_page_id);
+    right_page_ptr->SetNextPageId(leaf_page->GetNextPageId());
 
     KeyType left_page_end_key = left_page_ptr->KeyAt(left_page_ptr->GetSize()-1);
     LeafPage* target_page;
@@ -193,7 +224,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     target_page->Insert(key, value, index);
     // TODO unpin left_page_ptr and right_page_ptr
   }
-
+  size_ ++;
   return true;
   /*
    - Look for biggest key that is less than or equal to key searching for 
@@ -252,6 +283,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   // Declaration of context instance.
   Context ctx;
   (void)ctx;
+  size_ --;
   /* IMPORTANT: Insert() relies on compacting leaf array when removing an element. */
 }
 
@@ -290,7 +322,11 @@ auto BPLUSTREE_TYPE::SplitLeafNode(LeafPage* leaf_page) -> std::tuple<page_id_t,
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
+  KeyType index_key;
+  index_key.SetFromInteger(0);
+  return {bpm_, {GetLeafPageId(index_key), 0}};
+}
 
 
 
@@ -300,7 +336,10 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE()
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { 
+  // TODO
+  return INDEXITERATOR_TYPE(); 
+}
 
 /*
  * Input parameter is void, construct an index iterator representing the end
@@ -308,7 +347,11 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return IN
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { 
+  page_id_t max_leaf_page_id = GetMaxLeafPageId();
+  LeafPage* max_leaf_page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(max_leaf_page_id)->GetData());
+  return {bpm_, {max_leaf_page_id, max_leaf_page->GetSize() - 1}};
+}
 
 
 

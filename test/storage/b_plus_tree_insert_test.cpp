@@ -187,7 +187,7 @@ TEST(BPlusTreeTests, DISABLED_InsertTest3) {
 
 
 
-TEST(BPlusTreeTests, InsertTest4) {
+TEST(BPlusTreeTests, DISABLED_InsertTest4) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -207,17 +207,53 @@ TEST(BPlusTreeTests, InsertTest4) {
   auto *transaction = new Transaction(0);
 
 
-  for (int64_t key = 0; key < BUSTUB_PAGE_SIZE / 16 + 11; key ++) {
+  for (int64_t key = 0; key < BUSTUB_PAGE_SIZE / 16 + 11 + 128 + 128; key ++) {
     int64_t value = key & 0xFFFFFFFF;
     rid.Set(static_cast<int32_t>(key >> 32), value);
     index_key.SetFromInteger(key);
      tree.Insert(index_key, rid, transaction);
   }
 
-  std::cout << tree.DrawBPlusTree() << std::endl;
+  std::cout << tree.DrawBPlusTree() << std::endl;  
+  bpm->UnpinPage(HEADER_PAGE_ID, true);
+  delete transaction;
+  // delete bpm;
+}
 
-  std::cout << "after drawing " << std::endl;
-  
+
+
+TEST(BPlusTreeTests, InsertTest5) {
+  // create KeyComparator and index schema
+  auto key_schema = ParseCreateStatement("a bigint");
+  GenericComparator<8> comparator(key_schema.get());
+
+  auto disk_manager = std::make_unique<DiskManagerUnlimitedMemory>();
+  auto *bpm = new BufferPoolManager(50, disk_manager.get());
+  // create and fetch header_page
+  page_id_t page_id;
+  auto header_page = bpm->NewPage(&page_id);
+  ASSERT_EQ(page_id, HEADER_PAGE_ID);
+
+  // create b+ tree
+  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", header_page->GetPageId(), bpm, comparator);
+  GenericKey<8> index_key;
+  RID rid;
+  // create transaction
+  auto *transaction = new Transaction(0);
+
+
+  for (int64_t key = 0; key < BUSTUB_PAGE_SIZE / 16 + 11 + 128 + 128; key ++) {
+    int64_t value = key & 0xFFFFFFFF;
+    rid.Set(static_cast<int32_t>(key >> 32), value);
+    index_key.SetFromInteger(key);
+     tree.Insert(index_key, rid, transaction);
+  }
+
+  for (INDEXITERATOR_TYPE it = tree.Begin(); it != tree.End(); ++it) {
+    std::cout << (*it).second << " ";
+  }
+
+  std::cout << tree.DrawBPlusTree() << std::endl;  
   bpm->UnpinPage(HEADER_PAGE_ID, true);
   delete transaction;
   // delete bpm;

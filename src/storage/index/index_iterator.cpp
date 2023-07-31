@@ -5,6 +5,7 @@
 
 #include "storage/index/index_iterator.h"
 
+
 namespace bustub {
 
 /*
@@ -15,16 +16,36 @@ INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::IndexIterator() = default;
 
 INDEX_TEMPLATE_ARGUMENTS
+INDEXITERATOR_TYPE::IndexIterator(BufferPoolManager* bpm, std::pair<page_id_t,size_t> pos) {
+    // b_plus_tree_ = associated_b_plus_tree;
+    bpm_ = bpm;
+    pos_ = pos;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::~IndexIterator() = default;  // NOLINT
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::IsEnd() -> bool { throw std::runtime_error("unimplemented"); }
+auto INDEXITERATOR_TYPE::IsEnd() -> bool {
+    return pos_ == b_plus_tree_.size_;
+}
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::operator*() -> const MappingType & { throw std::runtime_error("unimplemented"); }
+auto INDEXITERATOR_TYPE::operator*() -> const MappingType & {
+    LeafPage* page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(pos_.first)->GetData());
+    return page->array_[pos_.second];
+
+}
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & { throw std::runtime_error("unimplemented"); }
+auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
+    LeafPage* page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(pos_.first)->GetData());
+    if (pos_.second >= page->GetSize()) {
+        pos_ = {page->GetNextPageId(), 0};
+    } else {
+        pos_.second ++;
+    }
+}
 
 template class IndexIterator<GenericKey<4>, RID, GenericComparator<4>>;
 
