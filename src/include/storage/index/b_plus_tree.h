@@ -147,12 +147,12 @@ class BPlusTree {
    * @param key 
    * @return BPlusTreeInternalPage* 
    */
-  auto GetLeafPage(KeyType key, std::vector<page_id_t> &page_path) -> LeafPage*;
+  auto GetLeafPage(KeyType key, std::vector<page_id_t> &page_path) -> page_id_t;
 
  private:
 
   /* Splits, returning the two resuling pages from split and middle key element. */
-  auto SplitLeafNode(LeafPage* leaf_page) -> std::tuple<page_id_t,page_id_t,KeyType>;
+  auto SplitLeafNode(page_id_t leaf_page) -> std::tuple<page_id_t,page_id_t,KeyType>;
 
   auto UpdateParent(page_id_t left_page_id, page_id_t right_page_id, 
                   KeyType key_middle, std::vector<page_id_t> page_path) -> void;
@@ -172,7 +172,7 @@ class BPlusTree {
 
   // member variable
   std::string index_name_;
-  BufferPoolManager * ;
+  BufferPoolManager* bpm_;
   KeyComparator comparator_;
   std::vector<std::string> log;  // NOLINT
   int leaf_max_size_;

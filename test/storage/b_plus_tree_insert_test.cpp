@@ -25,7 +25,7 @@ namespace bustub {
 
 using bustub::DiskManagerUnlimitedMemory;
 
-TEST(BPlusTreeTests, DISABLED_InsertTest1) {
+TEST(BPlusTreeTests, InsertTest1) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -62,7 +62,7 @@ TEST(BPlusTreeTests, DISABLED_InsertTest1) {
   // delete bpm;
 }
 
-TEST(BPlusTreeTests, DISABLED_InsertTest2) {
+TEST(BPlusTreeTests, InsertTest2) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -119,7 +119,7 @@ TEST(BPlusTreeTests, DISABLED_InsertTest2) {
   // delete bpm;
 }
 
-TEST(BPlusTreeTests, DISABLED_InsertTest3) {
+TEST(BPlusTreeTests, InsertTest3) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -157,6 +157,8 @@ TEST(BPlusTreeTests, DISABLED_InsertTest3) {
     EXPECT_EQ(rids[0].GetSlotNum(), value);
   }
 
+  std::cout << tree.DrawBPlusTree() << std::endl; 
+  
   int64_t start_key = 1;
   int64_t current_key = start_key;
   index_key.SetFromInteger(start_key);
@@ -187,7 +189,7 @@ TEST(BPlusTreeTests, DISABLED_InsertTest3) {
 
 
 
-TEST(BPlusTreeTests, DISABLED_InsertTest4) {
+TEST(BPlusTreeTests, InsertTest4) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -221,7 +223,7 @@ TEST(BPlusTreeTests, DISABLED_InsertTest4) {
 }
 
 
-
+/* Iterator test */
 TEST(BPlusTreeTests, InsertTest5) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
@@ -241,16 +243,20 @@ TEST(BPlusTreeTests, InsertTest5) {
   // create transaction
   auto *transaction = new Transaction(0);
 
-
-  for (int64_t key = 0; key < BUSTUB_PAGE_SIZE / 16 + 11 + 128 + 128; key ++) {
+  for (int64_t key = 0; key < BUSTUB_PAGE_SIZE / 16 + 128 + 128 + 11; key ++) {
     int64_t value = key & 0xFFFFFFFF;
     rid.Set(static_cast<int32_t>(key >> 32), value);
     index_key.SetFromInteger(key);
      tree.Insert(index_key, rid, transaction);
   }
 
-  for (INDEXITERATOR_TYPE it = tree.Begin(); it != tree.End(); ++it) {
-    std::cout << (*it).second << " ";
+  std::cout << tree.DrawBPlusTree() << std::endl;  
+
+  int i = 0;
+
+  for (IndexIterator<GenericKey<8>, RID, GenericComparator<8>> it = tree.Begin(); it != tree.End(); ++it) {
+    std::cout << (*it).second << std::endl;
+    i ++;
   }
 
   std::cout << tree.DrawBPlusTree() << std::endl;  

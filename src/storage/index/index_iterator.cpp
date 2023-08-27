@@ -27,24 +27,51 @@ INDEXITERATOR_TYPE::~IndexIterator() = default;  // NOLINT
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::IsEnd() -> bool {
-    return pos_ == b_plus_tree_.size_;
+    LeafPage* page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(pos_.first)->GetData());
+    if (page->GetNextPageId() == -1 && (int)pos_.second == page->GetSize()-1) {
+        return true;
+    }
+    return false;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator*() -> const MappingType & {
+    std::cout << "pos in * operator: " << pos_.first << " " << pos_.second << std::endl;
     LeafPage* page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(pos_.first)->GetData());
-    return page->array_[pos_.second];
+    return page->KeyValueAt((int)pos_.second);
 
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
     LeafPage* page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(pos_.first)->GetData());
-    if (pos_.second >= page->GetSize()) {
+    if ((int)pos_.second >= page->GetSize()) {
         pos_ = {page->GetNextPageId(), 0};
     } else {
         pos_.second ++;
     }
+    return *this;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto INDEXITERATOR_TYPE::operator==(const IndexIterator &itr) const -> bool {
+    if (pos_.first == itr.GetPos().first && pos_.second == itr.GetPos().second) {
+        return true;
+    }
+    return false;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto INDEXITERATOR_TYPE::operator!=(const IndexIterator &itr) const -> bool {
+    if (pos_.first == itr.GetPos().first && pos_.second == itr.GetPos().second) {
+        return false;
+    }
+    return true;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto INDEXITERATOR_TYPE::GetPos() const -> std::pair<page_id_t, size_t> {
+    return pos_;
 }
 
 template class IndexIterator<GenericKey<4>, RID, GenericComparator<4>>;

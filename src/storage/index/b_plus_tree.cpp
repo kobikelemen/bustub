@@ -112,7 +112,7 @@ auto BPLUSTREE_TYPE::GetLeafPageId(KeyType key) -> page_id_t {
 
 
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::GetLeafPage(KeyType key, std::vector<page_id_t> &page_path) -> LeafPage* {
+auto BPLUSTREE_TYPE::GetLeafPage(KeyType key, std::vector<page_id_t> &page_path) -> page_id_t {
   /* Start searching at root page */
   auto page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(GetRootPageId())->GetData());
   page_path.push_back(GetRootPageId());
@@ -124,8 +124,9 @@ auto BPLUSTREE_TYPE::GetLeafPage(KeyType key, std::vector<page_id_t> &page_path)
     page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(current_page_id)->GetData());
     bpm_->UnpinPage(current_page_id, false);
   }
+  page_id_t leaf_page_id = page_path.back();
   page_path.pop_back();
-  return reinterpret_cast<LeafPage*>(page);
+  return leaf_page_id;
 }
 
 
@@ -159,7 +160,8 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
   Context ctx;
   (void)ctx;
   std::vector<page_id_t> page_path;
-  auto leaf_page = GetLeafPage(key, page_path);
+  auto leaf_page_id = GetLeafPage(key, page_path);
+  auto leaf_page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(leaf_page_id)->GetData());
   int index = FindKey<LeafPage,KeyType,KeyComparator>(leaf_page, key, comparator_);
   if (index != -1) {
     *result = {leaf_page->ValueAt(index)};
@@ -190,8 +192,8 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
   /* Saved order in which pages were traversed to reach leaf_page.
      Does not include leaf_page. (last one is parent of it.) */
   std::vector<page_id_t> page_path;
-  
-  auto leaf_page = GetLeafPage(key, page_path);
+  auto leaf_page_id = GetLeafPage(key, page_path);
+  auto leaf_page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(leaf_page_id)->GetData());
 
   if (leaf_page->GetSize() < leaf_page->GetMaxSize()) { /* If not full */
     /* Check if duplicate, return false if it is, insert and return true if not. */
@@ -201,7 +203,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     leaf_page->Insert(key, value, leaf_page->GetSize());
   } else {
     // recursively split leaf page.
-    std::tuple<page_id_t,page_id_t,KeyType> leaf_page_tuple = SplitLeafNode(leaf_page);
+    std::tuple<page_id_t,page_id_t,KeyType> leaf_page_tuple = SplitLeafNode(leaf_page_id);
     page_id_t left_page_id = std::get<0>(leaf_page_tuple);
     page_id_t right_page_id = std::get<1>(leaf_page_tuple);
     KeyType key_middle = std::get<2>(leaf_page_tuple);
@@ -285,30 +287,38 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   (void)ctx;
   size_ --;
   /* IMPORTANT: Insert() relies on compacting leaf array when removing an element. */
+  /* IMPORTANT: Ensure next_page_id_ is updated including to -1 to prev leaf page 
+                if removed leaf page is end one. */
 }
 
 
 
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::SplitLeafNode(LeafPage* leaf_page) -> std::tuple<page_id_t,page_id_t,KeyType> {
+auto BPLUSTREE_TYPE::SplitLeafNode(page_id_t leaf_page_id) -> std::tuple<page_id_t,page_id_t,KeyType> {
+  auto leaf_page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(leaf_page_id)->GetData());
   int index_middle = (int)leaf_page->GetSize() / 2;
   KeyType key_middle = leaf_page->KeyAt(index_middle);
-  page_id_t left_page_id;
+  // page_id_t left_page_id;
   page_id_t right_page_id;
-  auto left_page_ptr = reinterpret_cast<LeafPage*>(bpm_->NewPage(&left_page_id)->GetData());
+  // auto left_page_ptr = reinterpret_cast<LeafPage*>(bpm_->NewPage(&left_page_id)->GetData());
   auto right_page_ptr = reinterpret_cast<LeafPage*>(bpm_->NewPage(&right_page_id)->GetData());
-  left_page_ptr->Init();
+  // left_page_ptr->Init();
   right_page_ptr->Init();
   for (int i=0; i < (int)leaf_page->GetSize(); i ++) {
-    if (i < index_middle) {
-      left_page_ptr->Insert(leaf_page->KeyAt(i), leaf_page->ValueAt(i), left_page_ptr->GetSize());
-    } else {
+    
+    if (i >= index_middle) {
       right_page_ptr->Insert(leaf_page->KeyAt(i), leaf_page->ValueAt(i), right_page_ptr->GetSize());
     }
+    // if (i < index_middle) {
+    //   left_page_ptr->Insert(leaf_page->KeyAt(i), leaf_page->ValueAt(i), left_page_ptr->GetSize());
+    // } else {
+    //   right_page_ptr->Insert(leaf_page->KeyAt(i), leaf_page->ValueAt(i), right_page_ptr->GetSize());
+    // }
   }
-  bpm_->UnpinPage(left_page_id, true);
+  leaf_page->SetSize(index_middle - 1);
+  // bpm_->UnpinPage(left_page_id, true);
   bpm_->UnpinPage(right_page_id, true);
-  return {left_page_id, right_page_id, key_middle};
+  return {leaf_page_id, right_page_id, key_middle};
 }
 
 
@@ -337,7 +347,14 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { 
-  // TODO
+  std::vector<page_id_t> page_path;
+  auto leaf_page_id = GetLeafPage(key, page_path);
+  auto leaf_page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(leaf_page_id)->GetData());
+  for (int offset=0; offset < leaf_page->GetSize(); offset++) {
+    if (comparator_(leaf_page->KeyAt(offset), key) == 0) {
+      return {bpm_, {leaf_page_id, offset}};
+    }
+  }
   return INDEXITERATOR_TYPE(); 
 }
 

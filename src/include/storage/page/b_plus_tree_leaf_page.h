@@ -59,6 +59,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
   auto ValueAt(int index) -> ValueType;
+  auto KeyValueAt(int index) -> const MappingType&;
 
   /**
    * @brief for test only return a string representing all keys in
@@ -95,6 +96,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
    * @param index 
    */
   void Insert(const KeyType &key, const ValueType &value, size_t index);
+
 
  private:
   page_id_t next_page_id_;

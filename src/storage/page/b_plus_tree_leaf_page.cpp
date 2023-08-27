@@ -62,6 +62,10 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) -> ValueType {
   return array_[index].second;
 }
 
+INDEX_TEMPLATE_ARGUMENTS 
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyValueAt(int index) -> const MappingType& {
+  return array_[index];
+}
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, size_t index) {
