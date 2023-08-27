@@ -82,6 +82,14 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &val
   SetSize(GetSize() + 1);
 }
 
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::PrintArray() {
+  std::cout << "array_ (KeyType, ValueType): " << std::endl;
+  for (int i=0; i < GetSize(); i++) {
+    std::cout << array_[i].first.ToString() << "," << array_[i].second.ToString() << "  ";
+  }
+  std::cout << std::endl;
+}
 
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;

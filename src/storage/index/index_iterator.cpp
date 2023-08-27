@@ -36,7 +36,6 @@ auto INDEXITERATOR_TYPE::IsEnd() -> bool {
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator*() -> const MappingType & {
-    std::cout << "pos in * operator: " << pos_.first << " " << pos_.second << std::endl;
     LeafPage* page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(pos_.first)->GetData());
     return page->KeyValueAt((int)pos_.second);
 

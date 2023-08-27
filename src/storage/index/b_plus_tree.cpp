@@ -24,6 +24,23 @@ int FindKeyIndexBefore(BPlusTreePageType *page, KeyType key, KeyComparator compa
 }
 
 
+/* Returns index to insert key so it's inserted in sorted way */
+template <typename BPlusTreePageType, typename KeyType, typename KeyComparator>
+int FindKeyIndexBeforeLeaf(BPlusTreePageType *page, KeyType key, KeyComparator comparator) {
+  if (page->GetSize() == 0)
+    return 0;
+  int i = 0;
+  for (; i < page->GetSize(); i++) {
+    /* If KeyAt(i) >= key ... */
+    if (comparator(page->KeyAt(i), key) == 1 || 
+        comparator(page->KeyAt(i), key) == 1) {
+        return i;  
+      }
+  }
+  return i;
+}
+
+
 template <typename BPlusTreePageType, typename KeyType, typename KeyComparator>
 int FindGuidepostIndexInternal(BPlusTreePageType *page, KeyType key, KeyComparator comparator) {
   /* If first guidepost is greater than key looking for, return first key (invalid key) */
@@ -80,9 +97,8 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPool
 
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::GetMaxLeafPageId() -> page_id_t {
-   auto page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(GetRootPageId())->GetData());
-  page_id_t current_page_id;
-
+  page_id_t current_page_id = GetRootPageId();
+  auto page = reinterpret_cast<InternalPage*>(bpm_->FetchPage(current_page_id)->GetData());
   while (!page->IsLeafPage()) {
     int index = page->GetSize() - 1;
     InternalPage *prev_page = page;
@@ -197,12 +213,12 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
 
   if (leaf_page->GetSize() < leaf_page->GetMaxSize()) { /* If not full */
     /* Check if duplicate, return false if it is, insert and return true if not. */
-    int index = FindKeyIndexBefore<LeafPage,KeyType,KeyComparator>(leaf_page, key, comparator_);
-    if (comparator_(leaf_page->KeyAt(index-1), key) == 0) 
+    int index = FindKeyIndexBeforeLeaf<LeafPage,KeyType,KeyComparator>(leaf_page, key, comparator_);
+    if (index > 0 && comparator_(leaf_page->KeyAt(index-1), key) == 0) 
       return false;
-    leaf_page->Insert(key, value, leaf_page->GetSize());
+    leaf_page->Insert(key, value, index);
   } else {
-    // recursively split leaf page.
+    /* Split leaf page (TODO: make split recursive) */
     std::tuple<page_id_t,page_id_t,KeyType> leaf_page_tuple = SplitLeafNode(leaf_page_id);
     page_id_t left_page_id = std::get<0>(leaf_page_tuple);
     page_id_t right_page_id = std::get<1>(leaf_page_tuple);
@@ -222,7 +238,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     } else {
       target_page = right_page_ptr;
     }
-    size_t index = (size_t)FindKeyIndexBefore<LeafPage,KeyType,KeyComparator>(target_page, key, comparator_);
+    size_t index = (size_t)FindKeyIndexBeforeLeaf<LeafPage,KeyType,KeyComparator>(target_page, key, comparator_);
     target_page->Insert(key, value, index);
     // TODO unpin left_page_ptr and right_page_ptr
   }
@@ -358,7 +374,7 @@ INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { 
   page_id_t max_leaf_page_id = GetMaxLeafPageId();
   LeafPage* max_leaf_page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(max_leaf_page_id)->GetData());
-  return {bpm_, {max_leaf_page_id, max_leaf_page->GetSize() - 1}};
+  return {bpm_, {max_leaf_page_id, max_leaf_page->GetSize()}};
 }
 
 

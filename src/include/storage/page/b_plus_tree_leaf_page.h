@@ -97,6 +97,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
    */
   void Insert(const KeyType &key, const ValueType &value, size_t index);
 
+  void PrintArray();
 
  private:
   page_id_t next_page_id_;
