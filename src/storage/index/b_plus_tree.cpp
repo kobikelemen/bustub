@@ -298,25 +298,16 @@ auto BPLUSTREE_TYPE::SplitLeafNode(page_id_t leaf_page_id) -> std::tuple<page_id
   auto leaf_page = reinterpret_cast<LeafPage*>(bpm_->FetchPage(leaf_page_id)->GetData());
   int index_middle = (int)leaf_page->GetSize() / 2;
   KeyType key_middle = leaf_page->KeyAt(index_middle);
-  // page_id_t left_page_id;
   page_id_t right_page_id;
-  // auto left_page_ptr = reinterpret_cast<LeafPage*>(bpm_->NewPage(&left_page_id)->GetData());
   auto right_page_ptr = reinterpret_cast<LeafPage*>(bpm_->NewPage(&right_page_id)->GetData());
-  // left_page_ptr->Init();
   right_page_ptr->Init();
   for (int i=0; i < (int)leaf_page->GetSize(); i ++) {
     
     if (i >= index_middle) {
       right_page_ptr->Insert(leaf_page->KeyAt(i), leaf_page->ValueAt(i), right_page_ptr->GetSize());
     }
-    // if (i < index_middle) {
-    //   left_page_ptr->Insert(leaf_page->KeyAt(i), leaf_page->ValueAt(i), left_page_ptr->GetSize());
-    // } else {
-    //   right_page_ptr->Insert(leaf_page->KeyAt(i), leaf_page->ValueAt(i), right_page_ptr->GetSize());
-    // }
   }
   leaf_page->SetSize(index_middle - 1);
-  // bpm_->UnpinPage(left_page_id, true);
   bpm_->UnpinPage(right_page_id, true);
   return {leaf_page_id, right_page_id, key_middle};
 }
